@@ -1,0 +1,98 @@
+name: Deploy Feedback App
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.5.0
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run security scan
+        run: |
+          bandit -r backend/ -f json -o bandit-report.json || true
+          safety check --json --output safety-report.json || true
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v --junitxml=test-results.xml
+      
+      - name: Lint code
+        run: |
+          pylint backend/*.py --output-format=json > pylint-report.json || true
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            bandit-report.json
+            safety-report.json
+            pylint-report.json
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+      
+      - name: Terraform Plan
+        run: |
+          cd terraform
+          terraform plan -var="environment=prod"
+      
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -var="environment=prod" -auto-approve
+      
+      - name: Update Frontend Config
+        run: |
+          cd terraform
+          API_URL=$(terraform output -raw api_gateway_url)
+          sed -i "s|API_BASE_URL: '.*'|API_BASE_URL: '$API_URL'|" ../frontend/config.js
+          terraform apply -target=aws_s3_object.script_js -target=aws_s3_object.index_html -auto-approve
+      
+      - name: Health Check
+        run: |
+          cd terraform
+          API_URL=$(terraform output -raw api_gateway_url)
+          curl -f "$API_URL/feedback" || exit 1
