@@ -1,30 +1,5 @@
 # Enhanced security configurations
 
-# DynamoDB encryption at rest
-resource "aws_dynamodb_table" "user_feedback_secure" {
-  name           = "UserFeedback"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "feedback_id"
-
-  attribute {
-    name = "feedback_id"
-    type = "S"
-  }
-
-  server_side_encryption {
-    enabled = true
-  }
-
-  point_in_time_recovery {
-    enabled = true
-  }
-
-  tags = {
-    Name        = "${var.project_name}-feedback-table"
-    Environment = var.environment
-  }
-}
-
 # API Gateway throttling
 resource "aws_api_gateway_usage_plan" "feedback_usage_plan" {
   name = "${var.project_name}-usage-plan"
@@ -94,8 +69,8 @@ resource "aws_wafv2_web_acl" "feedback_api_waf" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                 = "RateLimitRule"
-      sampled_requests_enabled    = true
+      metric_name                = "RateLimitRule"
+      sampled_requests_enabled   = true
     }
 
     action {
@@ -105,7 +80,7 @@ resource "aws_wafv2_web_acl" "feedback_api_waf" {
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                 = "${var.project_name}-waf"
-    sampled_requests_enabled    = true
+    metric_name                = "${var.project_name}-waf"
+    sampled_requests_enabled   = true
   }
 }

@@ -13,13 +13,21 @@ provider "aws" {
 
 # DynamoDB Table
 resource "aws_dynamodb_table" "user_feedback" {
-  name           = "UserFeedback"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "feedback_id"
+  name         = "UserFeedback"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "feedback_id"
 
   attribute {
     name = "feedback_id"
     type = "S"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = {
@@ -88,11 +96,11 @@ data "archive_file" "create_feedback_zip" {
 resource "aws_lambda_function" "create_feedback" {
   filename         = "create_feedback.zip"
   function_name    = "${var.project_name}-create-feedback"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "create_feedback.lambda_handler"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "create_feedback.lambda_handler"
   source_code_hash = data.archive_file.create_feedback_zip.output_base64sha256
-  runtime         = "python3.9"
-  timeout         = 30
+  runtime          = "python3.9"
+  timeout          = 30
 
   depends_on = [
     aws_iam_role_policy.lambda_policy,
@@ -110,11 +118,11 @@ data "archive_file" "get_feedback_zip" {
 resource "aws_lambda_function" "get_feedback" {
   filename         = "get_feedback.zip"
   function_name    = "${var.project_name}-get-feedback"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "get_feedback.lambda_handler"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "get_feedback.lambda_handler"
   source_code_hash = data.archive_file.get_feedback_zip.output_base64sha256
-  runtime         = "python3.9"
-  timeout         = 30
+  runtime          = "python3.9"
+  timeout          = 30
 
   depends_on = [
     aws_iam_role_policy.lambda_policy,
@@ -132,11 +140,11 @@ data "archive_file" "delete_feedback_zip" {
 resource "aws_lambda_function" "delete_feedback" {
   filename         = "delete_feedback.zip"
   function_name    = "${var.project_name}-delete-feedback"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "delete_feedback.lambda_handler"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "delete_feedback.lambda_handler"
   source_code_hash = data.archive_file.delete_feedback_zip.output_base64sha256
-  runtime         = "python3.9"
-  timeout         = 30
+  runtime          = "python3.9"
+  timeout          = 30
 
   depends_on = [
     aws_iam_role_policy.lambda_policy,
@@ -164,14 +172,14 @@ resource "aws_cloudwatch_log_group" "delete_feedback_logs" {
 resource "aws_apigatewayv2_api" "feedback_api" {
   name          = "${var.project_name}-api"
   protocol_type = "HTTP"
-  
+
   cors_configuration {
     allow_credentials = false
     allow_headers     = ["content-type"]
     allow_methods     = ["*"]
     allow_origins     = ["*"]
     expose_headers    = ["date", "keep-alive"]
-    max_age          = 86400
+    max_age           = 86400
   }
 }
 
@@ -278,7 +286,7 @@ resource "aws_s3_bucket_public_access_block" "website_pab" {
 }
 
 resource "aws_s3_bucket_policy" "website_policy" {
-  bucket = aws_s3_bucket.website_bucket.id
+  bucket     = aws_s3_bucket.website_bucket.id
   depends_on = [aws_s3_bucket_public_access_block.website_pab]
 
   policy = jsonencode({
