@@ -2,7 +2,10 @@ import json
 import boto3
 import uuid
 from datetime import datetime
-from utils import validate_feedback_input, sanitize_string, create_response, log_event
+try:
+    from .utils import validate_feedback_input, sanitize_string, create_response, log_event
+except ImportError:
+    from utils import validate_feedback_input, sanitize_string, create_response, log_event
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UserFeedback')

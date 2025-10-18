@@ -32,6 +32,7 @@ jobs:
       
       - name: Run tests
         run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           pytest tests/ -v --junitxml=test-results.xml
       
       - name: Lint code
