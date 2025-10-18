@@ -49,6 +49,21 @@ terraform output website_url
 - `GET /feedback` - Retrieve all feedback
 - `DELETE /feedback/{id}` - Delete feedback by ID
 
+## GitHub Actions CI/CD
+
+### Automatic Testing
+Tests run automatically on all pushes and pull requests. No setup required.
+
+### Automatic Deployment
+To enable automatic deployment to AWS:
+
+1. Go to your GitHub repository Settings > Secrets and variables > Actions
+2. Add these repository secrets:
+   - `AWS_ACCESS_KEY_ID`: Your AWS access key
+   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
+
+Once configured, pushes to the main branch will automatically deploy to AWS.
+
 ## Clean Up
 ```bash
 terraform destroy
